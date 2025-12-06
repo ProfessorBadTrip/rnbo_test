@@ -235,7 +235,7 @@
     "externalDataRefs": [
       {
         "id": "b_a_e_i_o_u_y_wav",
-        "file": "/media/a-e-i-o-u-y.wav",
+        "file": "media/a-e-i-o-u-y.wav",
         "type": "Float32Buffer",
         "tag": "buffer~"
       }
