@@ -78,16 +78,16 @@ async function setup() {
     makeSliders(device);
 
     // (Optional) Create a form to send messages to RNBO inputs
-    makeInportForm(device);
+    // makeInportForm(device);
 
     // (Optional) Attach listeners to outports so you can log messages from the RNBO patcher
-    attachOutports(device);
+    // attachOutports(device);
 
     // (Optional) Load presets, if any
-    loadPresets(device, patcher);
+    // loadPresets(device, patcher);
 
     // (Optional) Connect MIDI inputs
-    makeMIDIKeyboard(device);
+    // makeMIDIKeyboard(device);
 
     document.body.onclick = () => {
         context.resume();
@@ -115,98 +115,194 @@ function loadRNBOScript(version) {
 }
 
 function makeSliders(device) {
-    let pdiv = document.getElementById("rnbo-parameter-sliders");
-    let noParamLabel = document.getElementById("no-param-label");
+    const pdiv = document.getElementById("rnbo-parameter-sliders");
+    const noParamLabel = document.getElementById("no-param-label");
     if (noParamLabel && device.numParameters > 0) pdiv.removeChild(noParamLabel);
 
-    // This will allow us to ignore parameter update events while dragging the slider.
+    // -----------------------------
+    // Reorder parameters (visual)
+    // -----------------------------
+    const orderedParams = device.parameters.slice(); // shallow copy
+
+    const targetName = "11: On/Off";
+    const groupNames = ["11: Barwa", "11: Poziom szumu", "11: Filtr szumu"];
+
+    const targetIndex = orderedParams.findIndex(p => p.name === targetName);
+    const groupIndices = groupNames
+      .map(name => orderedParams.findIndex(p => p.name === name))
+      .filter(i => i >= 0);
+
+    if (targetIndex >= 0 && groupIndices.length > 0) {
+      const insertBeforeIndex = Math.min(...groupIndices);
+      const [targetParam] = orderedParams.splice(targetIndex, 1);
+      let adjustedIndex = insertBeforeIndex;
+      if (targetIndex < insertBeforeIndex) adjustedIndex = insertBeforeIndex - 1;
+      orderedParams.splice(adjustedIndex, 0, targetParam);
+    }
+
+    // -----------------------------
+    // Helpers and state
+    // -----------------------------
     let isDraggingSlider = false;
     let uiElements = {};
 
-    device.parameters.forEach(param => {
-        // Subpatchers also have params. If we want to expose top-level
-        // params only, the best way to determine if a parameter is top level
-        // or not is to exclude parameters with a '/' in them.
-        // You can uncomment the following line if you don't want to include subpatcher params
-        
-        //if (param.id.includes("/")) return;
+    function calcPercent(value, min, max) {
+        const mn = Number(min), mx = Number(max);
+        if (mx === mn) return "0%";
+        const pct = ((Number(value) - mn) / (mx - mn)) * 100;
+        return Math.max(0, Math.min(100, pct)) + "%";
+    }
 
-        // Create a label, an input slider and a value display
-        let label = document.createElement("label");
-        let slider = document.createElement("input");
-        let text = document.createElement("input");
-        let sliderContainer = document.createElement("div");
-        sliderContainer.appendChild(label);
-        sliderContainer.appendChild(slider);
-        sliderContainer.appendChild(text);
+    // -----------------------------
+    // Build UI (iterate orderedParams)
+    // -----------------------------
+    orderedParams.forEach(param => {
+        const row = document.createElement("div");
+        row.className = "param-row";
 
-        // Add a name for the label
-        label.setAttribute("name", param.name);
-        label.setAttribute("for", param.name);
-        label.setAttribute("class", "param-label");
-        label.textContent = `${param.name}: `;
+        // Type detection:
+        const isBooleanLike = (Number(param.min) === 0 && Number(param.max) === 1 && Number(param.steps) === 2);
+        const isRadioLike = (Number(param.steps) > 2);
 
-        // Make each slider reflect its parameter
-        slider.setAttribute("type", "range");
-        slider.setAttribute("class", "param-slider");
-        slider.setAttribute("id", param.id);
-        slider.setAttribute("name", param.name);
-        slider.setAttribute("min", param.min);
-        slider.setAttribute("max", param.max);
-        if (param.steps > 1) {
-            slider.setAttribute("step", (param.max - param.min) / (param.steps - 1));
-        } else {
-            slider.setAttribute("step", (param.max - param.min) / 1000.0);
-        }
-        slider.setAttribute("value", param.value);
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "param-name";
+        nameSpan.textContent = param.name || param.id;
 
-        // Make a settable text input display for the value
-        text.setAttribute("value", param.value.toFixed(1));
-        text.setAttribute("type", "text");
+        if (isBooleanLike) {
+            // Toggle button
+            const button = document.createElement("button");
+            button.className = "toggle-btn";
+            const isOn = Number(param.value) >= 1;
+            button.textContent = isOn ? "ON" : "OFF";
+            if (isOn) button.classList.add("active");
 
-        // Make each slider control its parameter
-        slider.addEventListener("pointerdown", () => {
-            isDraggingSlider = true;
-        });
-        slider.addEventListener("pointerup", () => {
-            isDraggingSlider = false;
-            slider.value = param.value;
-            text.value = param.value.toFixed(1);
-        });
-        slider.addEventListener("input", () => {
-            let value = Number.parseFloat(slider.value);
-            param.value = value;
-        });
+            button.addEventListener("click", () => {
+                const newVal = (Number(param.value) === Number(param.max)) ? Number(param.min) : Number(param.max);
+                param.value = newVal;
+                const nowOn = Number(newVal) === Number(param.max);
+                button.textContent = nowOn ? "ON" : "OFF";
+                button.classList.toggle("active", nowOn);
+            });
 
-        // Make the text box input control the parameter value as well
-        text.addEventListener("keydown", (ev) => {
-            if (ev.key === "Enter") {
-                let newValue = Number.parseFloat(text.value);
-                if (isNaN(newValue)) {
-                    text.value = param.value;
+            row.appendChild(button);
+            row.appendChild(nameSpan);
+
+            uiElements[param.id] = { button, nameSpan };
+
+        } else if (isRadioLike) {
+            // Radio group (horizontal buttons)
+            const steps = Number(param.steps);
+            const min = Number(param.min);
+            const max = Number(param.max);
+            const stepValue = (max - min) / (steps - 1);
+
+            const group = document.createElement("div");
+            group.className = "radio-group";
+
+            const labels = Array.isArray(param.labels) ? param.labels : null;
+            const buttons = [];
+
+            for (let i = 0; i < steps; i++) {
+                const value = min + i * stepValue;
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "radio-btn";
+                if (labels && labels[i] !== undefined) {
+                    btn.textContent = String(labels[i]);
                 } else {
-                    newValue = Math.min(newValue, param.max);
-                    newValue = Math.max(newValue, param.min);
-                    text.value = newValue;
-                    param.value = newValue;
+                    btn.textContent = Number.isInteger(value) ? String(value) : Number(value).toFixed(2).replace(/\.?0+$/,"");
                 }
+                btn.dataset.value = String(value);
+
+                btn.addEventListener("click", () => {
+                    param.value = value;
+                    buttons.forEach(b => b.classList.toggle("active", b === btn));
+                });
+
+                group.appendChild(btn);
+                buttons.push(btn);
             }
-        });
 
-        // Store the slider and text by name so we can access them later
-        uiElements[param.id] = { slider, text };
+            // Initialize active button based on param.value
+            const nearestIndex = Math.round((Number(param.value) - min) / stepValue);
+            if (buttons[nearestIndex]) buttons[nearestIndex].classList.add("active");
 
-        // Add the slider element
-        pdiv.appendChild(sliderContainer);
+            row.appendChild(group);
+            row.appendChild(nameSpan);
+
+            uiElements[param.id] = { radioGroup: group, radioButtons: buttons, nameSpan, stepValue, min, max };
+
+        } else {
+    // Slider without numeric input box
+    const slider = document.createElement("input");
+    slider.type = "range";
+    slider.className = "param-slider";
+    slider.id = param.id;
+    slider.name = param.name || param.id;
+    slider.min = param.min;
+    slider.max = param.max;
+
+    if (param.steps > 1) {
+        slider.step = (param.max - param.min) / (param.steps - 1);
+    } else {
+        slider.step = (param.max - param.min) / 1000.0;
+    }
+    slider.value = param.value;
+    slider.style.setProperty("--percent", calcPercent(param.value, param.min, param.max));
+
+    slider.addEventListener("pointerdown", () => { isDraggingSlider = true; });
+    slider.addEventListener("pointerup", () => {
+        isDraggingSlider = false;
+        slider.value = param.value;
+        slider.style.setProperty("--percent", calcPercent(param.value, param.min, param.max));
+    });
+    slider.addEventListener("input", () => {
+        const v = Number.parseFloat(slider.value);
+        param.value = v;
+        slider.style.setProperty("--percent", calcPercent(v, param.min, param.max));
     });
 
-    // Listen to parameter changes from the device
-    device.parameterChangeEvent.subscribe(param => {
-        if (!isDraggingSlider)
-            uiElements[param.id].slider.value = param.value;
-        uiElements[param.id].text.value = param.value.toFixed(1);
+    row.appendChild(slider);
+    row.appendChild(nameSpan);
+
+    uiElements[param.id] = { slider, nameSpan };
+}
+
+
+        row.classList.add(`param-${param.id.replace(/\W/g, "_")}`);
+        pdiv.appendChild(row);
+    });
+
+    // -----------------------------
+    // React to external device changes
+    // -----------------------------
+    device.parameterChangeEvent.subscribe(ev => {
+        const entry = uiElements[ev.id];
+        if (!entry) return;
+
+        if (entry.button) {
+            const on = Number(ev.value) >= 1;
+            entry.button.textContent = on ? "ON" : "OFF";
+            entry.button.classList.toggle("active", on);
+        }
+
+        if (entry.radioButtons) {
+            const min = entry.min;
+            const stepVal = entry.stepValue;
+            const idx = Math.round((Number(ev.value) - min) / stepVal);
+            entry.radioButtons.forEach((b, i) => b.classList.toggle("active", i === idx));
+        }
+
+        if (entry.slider && !isDraggingSlider) {
+            entry.slider.value = ev.value;
+            entry.slider.style.setProperty("--percent", calcPercent(ev.value, device.parameters.find(p => p.id === ev.id).min, device.parameters.find(p => p.id === ev.id).max));
+        }
+        // if (entry.text) {
+        //     entry.text.value = Number(ev.value).toFixed(2);
+        // }
     });
 }
+
 
 function makeInportForm(device) {
     const idiv = document.getElementById("rnbo-inports");

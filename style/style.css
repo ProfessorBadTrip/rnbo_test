@@ -1,54 +1,217 @@
+/* ===========================
+   styles.css — czysty layout
+   =========================== */
+
+/* Reset / podstawy */
 html, body {
-    margin: 0;
-    padding: 0;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background: #0b0d10;
+  color: #e6eef8;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* Root container */
 #rnbo-root {
-    height: 100vh;
-    width: 100vw;
+  height: 100vh;
+  width: 100vw;
+  margin: auto;
+  max-width: 540px; /* zachowano Twoją szerokość */
+  padding: 12px;
+  box-sizing: border-box;
 }
+
+/* Optional background element */
 #background {
-    position: absolute;
-    z-index: -1;
+  position: absolute;
+  z-index: -1;
 }
 
+/* Headings */
 h2, em {
-    width: 100%;
+  width: 100%;
+  margin: 8px 0;
 }
 
-#rnbo-root {
-    margin: auto;
-    max-width: 540px;
-}
-
-#rnbo-clickable-keyboard {
-    display: flex;
-    flex-wrap: wrap;
-}
-
-#rnbo-clickable-keyboard > div {
-    margin: 2px;
-    border: solid black 1px;
-    min-height: 50px;
-    flex-grow: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-#rnbo-clickable-keyboard > div.clicked {
-    background: #222222;
-    color: #dddddd;
-}
-
+/* ===========================
+   Parameter list container
+   =========================== */
 #rnbo-parameter-sliders {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px;
 }
 
-#rnbo-parameter-sliders > div {
-    display: flex;
+/* Each row: slider | value | name (right) */
+.param-row {
+  display: flex;
+  align-items: center;
+  gap: 100px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.01);
+  border: 1px solid rgba(255,255,255,0.02);
 }
 
-#rnbo-parameter-sliders > div > input:first-of-type {
-    flex-grow: 1;
+/* ------ Slider: stała szerokość ------ */
+/* Zmień 220px na inną wartość, jeśli chcesz inny rozmiar */
+.param-row .param-slider {
+  width: 300px;
+  flex: 0 0 300px; /* stała szerokość */
+  height: 30px;    /* wysokość tracka */
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent; /* track rysujemy pseudo-elementami */
+}
+
+/* Slider track visible (we'll fake a track with linear-gradient) */
+.param-row .param-slider {
+  background: linear-gradient(90deg, #1f6feb var(--percent, 50%), rgba(255,255,255,0.06) var(--percent, 50%));
+  border-radius: 999px;
+}
+
+/* WebKit thumb */
+.param-row .param-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 3px solid #1f6feb;
+  box-shadow: 0 4px 10px rgba(31,111,235,0.25);
+  margin-top: -px; /* center on 6px track */
+  cursor: pointer;
+}
+
+/* Firefox thumb */
+.param-row .param-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 3px solid #1f6feb;
+  box-shadow: 0 4px 10px rgba(31,111,235,0.25);
+  cursor: pointer;
+}
+
+/* Firefox track fix */
+.param-row .param-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+/* Numeric value (środkowe pole) */
+.param-row input[type="text"] {
+  width: 64px;        /* stała szerokość wartości */
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.04);
+  background: rgba(0,0,0,0.35);
+  color: #e6eef8;
+  text-align: center;
+  font-family: inherit;
+  font-size: 0.55rem;
+}
+
+/* Param name po prawej (wypycha się automatycznie) */
+.param-row .param-name {
+  margin-left: auto;
+  white-space: nowrap;
+  font-weight: 600;
+  color: #dbe9ff;
+  padding-left: 8px;
+}
+
+/* Param label (jeśli gdzieś używasz) */
+.param-label {
+  font-weight: 600;
+  color: #dbe9ff;
+}
+
+/* ---------------------------
+   Minimalny toggle button
+   --------------------------- */
+.toggle-btn {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+    color: #e6eef8;
+    font-weight: 700;
+    width: 110px;         /* <-- szerokość toggla */
+    text-align: center;   /* ładniejszy wygląd */
+}
+
+.toggle-btn.active {
+  background: rgb(0, 255, 13);
+  color: rgb(0, 0, 0);
+  border-color: rgba(255,255,255,0.08);
+}
+
+/* ===========================
+   Console / outports / presets - proste style
+   =========================== */
+#rnbo-console {
+  padding: 8px;
+  background: rgba(255,255,255,0.01);
+  border-radius: 8px;
+  margin-top: 12px;
+  font-family: monospace;
+  color: #cbd5e1;
+  border: 1px solid rgba(255,255,255,0.02);
+}
+
+#rnbo-presets, #rnbo-inports {
+  margin-top: 8px;
+}
+
+/* ===========================
+   Responsiveness
+   =========================== */
+@media (max-width: 520px) {
+  /* na bardzo małych ekranach zmniejszamy szerokość slidera */
+  .param-row .param-slider {
+    width: 250px;
+    flex: 0 0 250px;
+  }
+
+  #rnbo-root {
+    padding: 8px;
+  }
+}
+/* Radio-buttons group: horizontal buttons, total width = slider width */
+.radio-group {
+  display: flex;
+  gap: 6px;
+  width: 300px;         /* <-- dopasuj do .param-row .param-slider */
+  flex: 0 0 300px;
+  align-items: center;
+}
+
+/* Individual radio button */
+.radio-btn {
+  flex: 1 1 0;
+  padding: 8px 6px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  color: #e6eef8;
+  cursor: pointer;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Active state (selected) */
+.radio-btn.active {
+  background: linear-gradient(90deg, #1f6feb, #155ecf);
+  color: white;
+  box-shadow: 0 4px 10px rgba(31,111,235,0.18);
 }
