@@ -263,19 +263,19 @@
     "externalDataRefs": [
       {
         "id": "b_a_e_i_o_u_y_wav",
-        "file": "/Users/rafalryterski/Documents/plugdata/a-e-i-o-u-y.wav",
+        "file": "media/a-e-i-o-u-y.wav",
         "type": "Float32Buffer",
         "tag": "buffer~"
       },
       {
         "id": "b_consonance_2",
-        "file": "/Users/rafalryterski/Documents/Kompozycje/Pieśni na czas chaosu/consonance_2.mp3",
+        "file": "media/consonance_2.mp3",
         "type": "Float32Buffer",
         "tag": "buffer~"
       },
       {
         "id": "b_consonance_1",
-        "file": "/Users/rafalryterski/Documents/Kompozycje/Pieśni na czas chaosu/consonance_1.mp3",
+        "file": "media/consonance_1.mp3",
         "type": "Float32Buffer",
         "tag": "buffer~"
       }
