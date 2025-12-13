@@ -8,6 +8,7 @@ async function setup() {
     // Create gain node and connect it to audio output
     const outputNode = context.createGain();
     outputNode.connect(context.destination);
+
     
     // Fetch the exported patcher
     let response, patcher;
@@ -53,9 +54,22 @@ async function setup() {
 
     // Create the device
     let device;
-    try {
-        device = await RNBO.createDevice({ context, patcher });
-    } catch (err) {
+try {
+    device = await RNBO.createDevice({ context, patcher });
+
+// ---- W TYM MIEJSCU WKLEJAMY KOD DIAGNOSTYCZNY ----
+    console.log("Device parameters:");
+    console.table(device.parameters.map(p => ({
+        id: p.id,
+        name: p.name,
+        min: p.min,
+        max: p.max,
+        value: p.value,
+        steps: p.steps
+    })));
+    // -----------------------------------------------
+
+} catch (err) {
         if (typeof guardrails === "function") {
             guardrails({ error: err });
         } else {
@@ -166,7 +180,7 @@ function makeSliders(device) {
 
         const nameSpan = document.createElement("span");
         nameSpan.className = "param-name";
-        nameSpan.textContent = param.name || param.id;
+        nameSpan.textContent = param.displayName || param.id;
 
         if (isBooleanLike) {
             // Toggle button
